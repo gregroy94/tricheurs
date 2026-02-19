@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tricheurs">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
+<title>Tricheurs</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1c1c28;
+  --border: #2a2a3d;
+  --accent: #ff3b5c;
+  --accent2: #ffcc00;
+  --text: #e8e8f0;
+  --muted: #555570;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+}
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+
+/* ── Screens ─────────────────────────────────────────────── */
+.screen { display:none; flex-direction:column; align-items:center; justify-content:flex-start; min-height:100dvh; width:100%; padding:48px 24px 32px; position:relative; z-index:1; }
+.screen.active { display:flex; }
+
+/* ── Welcome screen ──────────────────────────────────────── */
+.game-title { font-family:'Bebas Neue',sans-serif; font-size:72px; letter-spacing:6px; background:linear-gradient(135deg,#fff 40%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1; margin-bottom:8px; text-align:center; }
+.game-sub { color:var(--muted); font-size:12px; letter-spacing:4px; text-transform:uppercase; margin-bottom:48px; }
+.welcome-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 28px; width:100%; max-width:380px; text-align:center; }
+.welcome-card h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; margin-bottom:8px; }
+.welcome-card p { color:var(--muted); font-size:14px; margin-bottom:24px; }
+.name-input { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:16px 20px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:18px; text-align:center; outline:none; transition:border-color 0.2s; margin-bottom:16px; }
+.name-input:focus { border-color:var(--accent); }
+.name-input::placeholder { color:var(--muted); }
+.join-btn { width:100%; background:var(--accent); color:#fff; border:none; padding:16px; border-radius:12px; font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:2px; cursor:pointer; transition:background 0.2s; }
+.join-btn:hover { background:#ff1a3d; }
+.join-btn:active { transform:scale(0.98); }
+
+/* ── Main player screen ──────────────────────────────────── */
+.player-header { width:100%; max-width:420px; display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+.player-name-tag { font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.player-name-val { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--text); }
+.conn-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); transition:background 0.3s; }
+.conn-dot.on { background:#22c55e; box-shadow:0 0 8px rgba(34,197,94,0.5); }
+
+.action-grid { display:flex; flex-direction:column; gap:12px; width:100%; max-width:420px; }
+
+.action-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px 24px; display:flex; align-items:center; gap:16px; cursor:pointer; transition:all 0.2s; text-decoration:none; }
+.action-card:hover { transform:translateY(-2px); }
+.action-card .icon { font-size:28px; flex-shrink:0; }
+.action-card .info { flex:1; }
+.action-card .info .title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; }
+.action-card .info .desc { font-size:12px; color:var(--muted); margin-top:2px; }
+.action-card .arrow { color:var(--muted); font-size:18px; }
+
+.action-card.code-card { border-color:rgba(255,204,0,0.3); }
+.action-card.code-card:hover { border-color:var(--accent2); background:rgba(255,204,0,0.05); }
+.action-card.code-card .title { color:var(--accent2); }
+
+.action-card.vote-card { border-color:rgba(99,179,237,0.3); }
+.action-card.vote-card:hover { border-color:#63b3ed; background:rgba(99,179,237,0.05); }
+.action-card.vote-card .title { color:#63b3ed; }
+.action-card.vote-card.disabled { opacity:0.4; cursor:not-allowed; pointer-events:none; }
+
+.action-card.results-card { border-color:rgba(167,139,250,0.3); }
+.action-card.results-card:hover { border-color:#a78bfa; background:rgba(167,139,250,0.05); }
+.action-card.results-card .title { color:#a78bfa; }
+.action-card.results-card.disabled { opacity:0.4; cursor:not-allowed; pointer-events:none; }
+
+.votes-open-badge { background:rgba(99,179,237,0.15); color:#63b3ed; font-size:11px; letter-spacing:2px; padding:3px 8px; border-radius:99px; text-transform:uppercase; margin-top:4px; display:inline-block; }
+.votes-closed-badge { background:rgba(85,85,112,0.2); color:var(--muted); font-size:11px; letter-spacing:2px; padding:3px 8px; border-radius:99px; text-transform:uppercase; margin-top:4px; display:inline-block; }
+
+/* ── Overlays ─────────────────────────────────────────────── */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:24px; }
+.overlay.open { display:flex; }
+
+/* Code input overlay */
+.code-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:40px 32px; text-align:center; width:100%; max-width:360px; }
+.code-box h3 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; margin-bottom:8px; }
+.code-box p { color:var(--muted); font-size:13px; margin-bottom:24px; }
+.code-box input { background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:16px 20px; border-radius:12px; font-size:24px; text-align:center; letter-spacing:8px; outline:none; width:100%; margin-bottom:16px; text-transform:uppercase; }
+.code-box input:focus { border-color:var(--accent2); }
+.code-box .btn-reveal { width:100%; background:var(--accent2); color:#0a0a0f; border:none; padding:14px; border-radius:12px; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; cursor:pointer; margin-bottom:10px; }
+.code-box .btn-cancel { width:100%; background:transparent; color:var(--muted); border:1px solid var(--border); padding:12px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:15px; cursor:pointer; }
+.error-msg { color:var(--accent); font-size:13px; margin-bottom:12px; min-height:20px; }
+
+/* Mission reveal */
+.mission-box { background:var(--surface); border:2px solid; border-radius:24px; padding:48px 32px 40px; text-align:center; width:100%; max-width:400px; }
+.mission-label { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
+.mission-role { font-family:'Bebas Neue',sans-serif; font-size:64px; letter-spacing:4px; line-height:1; margin-bottom:20px; }
+.mission-text { font-size:18px; line-height:1.7; color:var(--text); margin-bottom:32px; }
+.mission-close { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:14px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:16px; cursor:pointer; transition:all 0.2s; }
+.mission-close:hover { border-color:var(--accent); }
+
+/* Vote overlay */
+.vote-panel { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; width:100%; max-width:480px; max-height:85dvh; overflow-y:auto; }
+.vote-panel h3 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:#63b3ed; margin-bottom:6px; }
+.vote-panel .my-vote-info { font-size:13px; color:var(--muted); margin-bottom:20px; }
+.vote-names-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.vote-name-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:18px 12px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:15px; cursor:pointer; transition:all 0.2s; text-align:center; }
+.vote-name-btn:hover { border-color:#63b3ed; background:rgba(99,179,237,0.08); }
+.vote-name-btn.selected { border-color:#63b3ed; background:rgba(99,179,237,0.15); color:#63b3ed; }
+.vote-already-voted { text-align:center; padding:32px 16px; }
+.vote-already-voted .voted-icon { font-size:48px; margin-bottom:12px; }
+.vote-already-voted h4 { font-family:'Bebas Neue',sans-serif; font-size:32px; color:#22c55e; letter-spacing:2px; margin-bottom:8px; }
+.vote-already-voted p { color:var(--muted); font-size:14px; }
+.btn-confirm-vote { width:100%; background:#63b3ed; color:#0a0a0f; border:none; padding:14px; border-radius:12px; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; cursor:pointer; margin-bottom:10px; transition:background 0.2s; }
+.btn-confirm-vote:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-confirm-vote:not(:disabled):hover { background:#3b82f6; }
+.btn-cancel-vote { width:100%; background:transparent; color:var(--muted); border:1px solid var(--border); padding:12px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:15px; cursor:pointer; }
+
+/* Results overlay */
+.results-panel { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; width:100%; max-width:480px; max-height:85dvh; overflow-y:auto; }
+.results-panel h3 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:#a78bfa; margin-bottom:20px; }
+.result-row { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--surface2); border-radius:10px; margin-bottom:8px; border:1px solid var(--border); }
+.result-name { font-size:15px; font-weight:500; }
+.result-votes { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:2px; color:#a78bfa; }
+.result-bar-wrap { flex:1; height:5px; background:var(--border); border-radius:99px; margin:0 12px; overflow:hidden; }
+.result-bar { height:100%; background:#a78bfa; border-radius:99px; }
+.btn-close-results { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:14px; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:16px; cursor:pointer; margin-top:16px; }
+
+/* Vote confirmed popup */
+.vote-confirmed { background:var(--surface); border:1px solid #22c55e; border-radius:20px; padding:40px 28px; text-align:center; max-width:360px; width:100%; box-shadow:0 0 50px rgba(34,197,94,0.15); }
+.vote-confirmed .icon { font-size:48px; margin-bottom:12px; }
+.vote-confirmed h3 { font-family:'Bebas Neue',sans-serif; font-size:36px; color:#22c55e; letter-spacing:2px; margin-bottom:8px; }
+.vote-confirmed p { color:var(--muted); font-size:14px; margin-bottom:24px; }
+.vote-confirmed button { width:100%; background:#22c55e; color:#0a0a0f; border:none; padding:14px; border-radius:12px; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; cursor:pointer; }
+
+/* Waiting screen */
+.waiting-msg { text-align:center; padding:32px 16px; }
+.waiting-msg .w-icon { font-size:48px; margin-bottom:16px; }
+.waiting-msg h4 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
+.waiting-msg p { color:var(--muted); font-size:13px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulsing { animation:pulse 2s infinite; }
+</style>
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div class="screen active" id="screenWelcome">
+  <div class="game-title">TRICHEURS</div>
+  <p class="game-sub">Interface joueur</p>
+  <div class="welcome-card">
+    <h2>Rejoindre la partie</h2>
+    <p>Entre ton prénom pour accéder à tes actions de jeu</p>
+    <input class="name-input" id="nameInput" placeholder="Ton prénom…" autocomplete="off" autocapitalize="words">
+    <button class="join-btn" onclick="joinGame()">Entrer</button>
+  </div>
+</div>
+
+<!-- MAIN PLAYER SCREEN -->
+<div class="screen" id="screenMain">
+  <div class="player-header">
+    <div>
+      <div class="player-name-tag">Joueur</div>
+      <div class="player-name-val" id="displayName">—</div>
+    </div>
+    <div class="conn-dot" id="connDot"></div>
+  </div>
+
+  <div class="action-grid">
+    <!-- Code secret -->
+    <div class="action-card code-card" onclick="openCodeModal()">
+      <div class="icon">🕵️</div>
+      <div class="info">
+        <div class="title">Code secret</div>
+        <div class="desc">Révéler ta mission</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+
+    <!-- Votes -->
+    <div class="action-card vote-card disabled" id="voteCard" onclick="openVotePanel()">
+      <div class="icon">🗳️</div>
+      <div class="info">
+        <div class="title">Voter</div>
+        <div class="desc">
+          <span id="voteBadge" class="votes-closed-badge">Fermé</span>
+        </div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+
+    <!-- Résultats -->
+    <div class="action-card results-card disabled" id="resultsCard" onclick="openResultsPanel()">
+      <div class="icon">📊</div>
+      <div class="info">
+        <div class="title">Résultats</div>
+        <div class="desc">
+          <span id="resultsBadge" class="votes-closed-badge">Non disponibles</span>
+        </div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- CODE SECRET OVERLAY -->
+<div class="overlay" id="overlayCode">
+  <div class="code-box">
+    <h3>Code Secret</h3>
+    <p>Entre ton code pour révéler ta mission</p>
+    <input type="text" id="codeSecretInput" placeholder="TON CODE" maxlength="20" autocomplete="off">
+    <div class="error-msg" id="codeSecretError"></div>
+    <button class="btn-reveal" onclick="revealMission()">Révéler</button>
+    <button class="btn-cancel" onclick="closeOverlay('overlayCode')">Annuler</button>
+  </div>
+</div>
+
+<!-- MISSION REVEAL OVERLAY -->
+<div class="overlay" id="overlayMission">
+  <div class="mission-box" id="missionBox">
+    <div class="mission-label">Ta mission</div>
+    <div class="mission-role" id="missionRole"></div>
+    <div class="mission-text" id="missionText"></div>
+    <button class="mission-close" onclick="closeOverlay('overlayMission')">✕ Fermer</button>
+  </div>
+</div>
+
+<!-- VOTE OVERLAY -->
+<div class="overlay" id="overlayVote">
+  <div class="vote-panel">
+    <h3>🗳 Voter</h3>
+    <p class="my-vote-info" id="voteInfo">Sélectionne un joueur</p>
+    <div id="voteContent"></div>
+    <button class="btn-cancel-vote" onclick="closeOverlay('overlayVote')">Fermer</button>
+  </div>
+</div>
+
+<!-- VOTE CONFIRMED -->
+<div class="overlay" id="overlayVoteConfirmed">
+  <div class="vote-confirmed">
+    <div class="icon">✅</div>
+    <h3>VOTÉ !</h3>
+    <p id="voteConfirmedText">Ton vote a été enregistré.</p>
+    <button onclick="closeOverlay('overlayVoteConfirmed')">Fermer</button>
+  </div>
+</div>
+
+<!-- RESULTS OVERLAY -->
+<div class="overlay" id="overlayResults">
+  <div class="results-panel">
+    <h3>📊 Résultats</h3>
+    <div id="resultsContent"></div>
+    <button class="btn-close-results" onclick="closeOverlay('overlayResults')">Fermer</button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, off, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDl-gClhDt-alcvb5Hnye6VPh6DmSKXcZk",
+  authDomain: "tricheurs.firebaseapp.com",
+  databaseURL: "https://tricheurs-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tricheurs",
+  storageBucket: "tricheurs.firebasestorage.app",
+  messagingSenderId: "72697511304",
+  appId: "1:72697511304:web:4aa71470683937c4dace3d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+function fbRef(path){ return ref(db, path); }
+function fbWatch(path, cb){ const r=fbRef(path); onValue(r, s=>cb(s.exists()?s.val():null)); return ()=>off(r); }
+async function fbGet(path){ const s=await get(fbRef(path)); return s.exists()?s.val():null; }
+async function fbSet(path,val){ return set(fbRef(path),val); }
+
+// ── State ─────────────────────────────────────────────────
+let myName = "";
+let hasVoted = false;
+let votesOpen = false;
+let resultsVisible = false;
+let secretCodes = {};
+let players = [];
+let votes = {};
+
+// Connection status
+fbWatch('.info/connected', v=>{
+  const dot = document.getElementById('connDot');
+  if(v) dot.classList.add('on'); else dot.classList.remove('on');
+});
+
+// Watch game state
+fbWatch('game/votesOpen', v=>{ votesOpen=!!v; updateVoteCard(); });
+fbWatch('game/resultsVisible', v=>{
+  resultsVisible=!!v;
+  updateResultsCard();
+  if(v) showResultsIfOpen();
+});
+fbWatch('game/players', v=>{ players=v||[]; });
+fbWatch('game/secretCodes', v=>{ secretCodes=v||{}; });
+fbWatch('game/votes', v=>{ votes=v||{}; });
+
+// ── Join ──────────────────────────────────────────────────
+window.joinGame = function(){
+  const n = document.getElementById('nameInput').value.trim();
+  if(!n){ document.getElementById('nameInput').style.borderColor='var(--accent)'; return; }
+  myName = n;
+  document.getElementById('displayName').innerText = myName;
+  showScreen('screenMain');
+  // Check if already voted (stored in sessionStorage)
+  hasVoted = sessionStorage.getItem('voted_'+myName) === '1';
+}
+document.getElementById('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') joinGame(); });
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Vote card state ───────────────────────────────────────
+function updateVoteCard(){
+  const card = document.getElementById('voteCard');
+  const badge = document.getElementById('voteBadge');
+  if(votesOpen){
+    card.classList.remove('disabled');
+    badge.className='votes-open-badge'; badge.textContent='Ouvert';
+  } else {
+    card.classList.add('disabled');
+    badge.className='votes-closed-badge'; badge.textContent='Fermé';
+  }
+}
+
+function updateResultsCard(){
+  const card = document.getElementById('resultsCard');
+  const badge = document.getElementById('resultsBadge');
+  if(resultsVisible){
+    card.classList.remove('disabled');
+    badge.className='votes-open-badge'; badge.textContent='Disponibles';
+  } else {
+    card.classList.add('disabled');
+    badge.className='votes-closed-badge'; badge.textContent='Non disponibles';
+  }
+}
+
+// ── Code secret ───────────────────────────────────────────
+window.openCodeModal = function(){
+  document.getElementById('codeSecretInput').value='';
+  document.getElementById('codeSecretError').innerText='';
+  openOverlay('overlayCode');
+  setTimeout(()=>document.getElementById('codeSecretInput').focus(),200);
+}
+
+document.getElementById('codeSecretInput').addEventListener('keydown', e=>{ if(e.key==='Enter') revealMission(); });
+
+window.revealMission = function(){
+  const entered = document.getElementById('codeSecretInput').value.trim().toUpperCase();
+  if(!entered){ document.getElementById('codeSecretError').innerText='Entre ton code'; return; }
+  const match = secretCodes[entered];
+  if(!match){ document.getElementById('codeSecretError').innerText='Code incorrect'; document.getElementById('codeSecretInput').value=''; return; }
+
+  closeOverlay('overlayCode');
+  const isT = match.role==='TRICHEUR';
+  const isR = match.role==='RÉGLO';
+  const color = isT?'var(--accent)':isR?'#22c55e':'var(--accent2)';
+  const border = isT?'var(--accent)':isR?'#22c55e':'var(--accent2)';
+  const glow = isT?'rgba(255,59,92,0.25)':isR?'rgba(34,197,94,0.2)':'rgba(255,204,0,0.2)';
+  const box = document.getElementById('missionBox');
+  box.style.borderColor=border; box.style.boxShadow=`0 0 60px ${glow}`;
+  document.getElementById('missionRole').style.color=color;
+  document.getElementById('missionRole').textContent=match.role;
+  document.getElementById('missionText').innerHTML=(match.text||'').replace(/\n/g,'<br>');
+  openOverlay('overlayMission');
+}
+
+// ── Vote ──────────────────────────────────────────────────
+let selectedPlayer = null;
+
+window.openVotePanel = function(){
+  if(!votesOpen) return;
+  selectedPlayer = null;
+  renderVoteContent();
+  openOverlay('overlayVote');
+}
+
+function renderVoteContent(){
+  const c = document.getElementById('voteContent');
+  const info = document.getElementById('voteInfo');
+
+  if(hasVoted){
+    info.textContent='';
+    c.innerHTML=`<div class="vote-already-voted"><div class="voted-icon">✅</div><h4>Tu as voté !</h4><p>Ton vote a bien été enregistré.</p></div>`;
+    return;
+  }
+
+  const list = players.filter(p=>p!==myName);
+  if(list.length===0){ c.innerHTML='<p style="color:var(--muted);text-align:center;padding:24px;">Aucun joueur disponible.</p>'; return; }
+
+  info.textContent='Choisis un joueur (1 vote)';
+  let html='<div class="vote-names-grid">';
+  list.forEach(p=>{
+    html+=`<button class="vote-name-btn${selectedPlayer===p?' selected':''}" onclick="selectPlayer('${p}')">${p}</button>`;
+  });
+  html+='</div>';
+  html+=`<button class="btn-confirm-vote" id="btnConfirmVote" onclick="confirmVote()" ${selectedPlayer?'':'disabled'}>Confirmer le vote</button>`;
+  c.innerHTML=html;
+}
+
+window.selectPlayer = function(name){
+  selectedPlayer=name;
+  renderVoteContent();
+}
+
+window.confirmVote = async function(){
+  if(!selectedPlayer||hasVoted) return;
+
+  // Atomic increment in Firebase
+  await runTransaction(fbRef(`game/votes/${selectedPlayer}`), current=>(current||0)+1);
+
+  hasVoted=true;
+  sessionStorage.setItem('voted_'+myName,'1');
+  closeOverlay('overlayVote');
+  document.getElementById('voteConfirmedText').innerText=`Tu as voté pour ${selectedPlayer}.`;
+  openOverlay('overlayVoteConfirmed');
+}
+
+// ── Results ───────────────────────────────────────────────
+function showResultsIfOpen(){
+  // Auto-open results overlay if results become visible and overlay isn't already open
+  if(resultsVisible && document.getElementById('overlayResults').classList.contains('open')){
+    renderResultsContent();
+  }
+}
+
+window.openResultsPanel = function(){
+  if(!resultsVisible) return;
+  renderResultsContent();
+  openOverlay('overlayResults');
+}
+
+function renderResultsContent(){
+  const c = document.getElementById('resultsContent');
+  const votesSnap = votes;
+  const keys = Object.keys(votesSnap);
+  if(keys.length===0){ c.innerHTML='<p style="color:var(--muted);text-align:center;padding:24px;">Aucun vote enregistré.</p>'; return; }
+
+  const sorted=keys.map(k=>({name:k,count:votesSnap[k]||0})).sort((a,b)=>b.count-a.count);
+  const maxV=sorted[0].count||1;
+  let html='';
+  sorted.forEach((item,i)=>{
+    const pct=Math.round((item.count/maxV)*100); const isTop=i===0&&item.count>0;
+    html+=`<div class="result-row" style="border-color:${isTop?'#a78bfa':'var(--border)'}${isTop?';box-shadow:0 0 16px rgba(167,139,250,0.15)':''}">
+      <span class="result-name">${isTop?'👑 ':''}${item.name}</span>
+      <div class="result-bar-wrap"><div class="result-bar" style="width:${pct}%"></div></div>
+      <span class="result-votes">${item.count}</span>
+    </div>`;
+  });
+  c.innerHTML=html;
+}
+
+// When results become visible while results overlay is closed, update the card and re-render if open
+fbWatch('game/resultsVisible', v=>{
+  if(v && document.getElementById('overlayResults').classList.contains('open')){
+    renderResultsContent();
+  }
+  if(!v && document.getElementById('overlayResults').classList.contains('open')){
+    closeOverlay('overlayResults');
+  }
+});
+
+// ── Overlay helpers ───────────────────────────────────────
+window.openOverlay = function(id){ document.getElementById(id).classList.add('open'); }
+window.closeOverlay = function(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── Install PWA hint ──────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  // Could show a custom install button here
+});
+</script>
+</body>
+</html>
